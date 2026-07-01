@@ -209,3 +209,4 @@ C:\HRConnect\HRConnect.API\bin\Debug\net10.0\ExcelNumberFormat.dll
 C:\HRConnect\HRConnect.API\bin\Debug\net10.0\RBush.dll
 C:\HRConnect\HRConnect.API\bin\Debug\net10.0\SixLabors.Fonts.dll
 C:\HRConnect\HRConnect.API\bin\Debug\net10.0\System.IO.Packaging.dll
+C:\HRConnect\HRConnect.API\obj\Debug\net10.0\HRConnect.API.sourcelink.json

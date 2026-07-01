@@ -110,7 +110,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 // Middleware
-if (app.Environment.IsDevelopment())
+if (true) // temporarily enable for QA
 {
     app.UseSwagger();
     app.UseSwaggerUI();
