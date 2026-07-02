@@ -19,12 +19,35 @@ builder.Services.AddSwaggerGen();
 
 // Database
 
+
+var host = Environment.GetEnvironmentVariable("PGHOST");
+var port = Environment.GetEnvironmentVariable("PGPORT");
+var database = Environment.GetEnvironmentVariable("PGDATABASE");
+var user = Environment.GetEnvironmentVariable("PGUSER");
+var password = Environment.GetEnvironmentVariable("PGPASSWORD");
+
+var connectionString =
+    $"Host={host};" +
+    $"Port={port};" +
+    $"Database={database};" +
+    $"Username={user};" +
+    $"Password={password};" +
+    $"SSL Mode=Require;" +
+    $"Trust Server Certificate=true";
+
 Console.WriteLine("================================");
-Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
+Console.WriteLine(connectionString);
 Console.WriteLine("================================");
 
 builder.Services.AddDbContext<HRConnectDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
+
+//Console.WriteLine("================================");
+//Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
+//Console.WriteLine("================================");
+
+//builder.Services.AddDbContext<HRConnectDbContext>(options =>
+  //  options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
