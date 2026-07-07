@@ -7,7 +7,6 @@ import { Dashboard } from './pages/Dashboard';
 import Leaves from './pages/Leaves';
 import LeaveApprovals from './pages/LeaveApprovals';
 import Profile from './pages/Profile';
-import './App.css';
 
 function App() {
   return (

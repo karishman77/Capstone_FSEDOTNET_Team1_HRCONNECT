@@ -18,39 +18,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Database
-
-
-var host = Environment.GetEnvironmentVariable("PGHOST");
-var port = Environment.GetEnvironmentVariable("PGPORT");
-var database = Environment.GetEnvironmentVariable("PGDATABASE");
-var user = Environment.GetEnvironmentVariable("PGUSER");
-var password = Environment.GetEnvironmentVariable("PGPASSWORD");
-
-var connectionString =
-    $"Host={host};" +
-    $"Port={port};" +
-    $"Database={database};" +
-    $"Username={user};" +
-    $"Password={password};" +
-    $"SSL Mode=Require;" +
-    $"Trust Server Certificate=true";
-
-Console.WriteLine("================================");
-Console.WriteLine(connectionString);
-Console.WriteLine("================================");
-
 builder.Services.AddDbContext<HRConnectDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-//Console.WriteLine("================================");
-//Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
-//Console.WriteLine("================================");
-
-//builder.Services.AddDbContext<HRConnectDbContext>(options =>
-  //  options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // AutoMapper
-builder.Services.AddAutoMapper(cfg =>
+var mapperConfig = new MapperConfiguration(cfg =>
 {
     cfg.CreateMap<User, UserDto>();
     cfg.CreateMap<Employee, EmployeeDto>();
@@ -58,6 +30,7 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.CreateMap<LeaveBalance, LeaveBalanceDto>()
         .ForMember(dest => dest.RemainingDays, opt => opt.MapFrom(src => src.RemainingDays));
 });
+builder.Services.AddSingleton(mapperConfig.CreateMapper());
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -162,12 +135,12 @@ if (app.Environment.IsEnvironment("Testing"))
         .RequireRateLimiting("GlobalPolicy");
 }
 
-// Database Migration
+// Database initialization
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<HRConnectDbContext>();
-    db.Database.Migrate();
+    await db.Database.EnsureCreatedAsync();
     await SeedData(db);
 }
 

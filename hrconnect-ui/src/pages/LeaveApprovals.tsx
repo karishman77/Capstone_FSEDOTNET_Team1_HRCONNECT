@@ -1,7 +1,23 @@
 import { useState, useEffect } from 'react';
 import { leaveService } from '../services/api';
 import { CarryForwardResult, LeaveAnalytics, LeaveRequest } from '../types';
-import './LeaveApprovals.css';
+import Layout from '../components/Layout';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Modal from '../components/Modal';
+import Badge from '../components/Badge';
+import StatCard from '../components/StatCard';
+import Table from '../components/Table';
+import {
+  FiCheckCircle,
+  FiXCircle,
+  FiClock,
+  FiDownload,
+  FiRefreshCw,
+  FiFilter,
+  FiCalendar,
+  FiUser
+} from 'react-icons/fi';
 
 export default function LeaveApprovals() {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
@@ -124,205 +140,298 @@ export default function LeaveApprovals() {
     (leave) => filter === 'All' || normalizeStatus(leave.status) === filter
   );
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return '#27ae60';
-      case 'rejected':
-        return '#e74c3c';
-      case 'cancelled':
-        return '#95a5a6';
-      default:
-        return '#f39c12';
-    }
+  const getStatusBadgeVariant = (status: string): 'success' | 'danger' | 'warning' | 'default' => {
+    const normalized = normalizeStatus(status).toLowerCase();
+    if (normalized === 'approved') return 'success';
+    if (normalized === 'rejected') return 'danger';
+    if (normalized === 'cancelled') return 'default';
+    return 'warning';
   };
 
-  return (
-    <div className="approvals-container">
-      <h1>Leave Approvals</h1>
-
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
-
-      {analytics && (
-        <div className="analytics-section">
-          <h2>Leave Analytics</h2>
-          <div className="analytics-cards">
-            <div className="analytics-card"><strong>Total</strong><span>{analytics.totalRequests}</span></div>
-            <div className="analytics-card"><strong>Pending</strong><span>{analytics.pendingRequests}</span></div>
-            <div className="analytics-card"><strong>Approved</strong><span>{analytics.approvedRequests}</span></div>
-            <div className="analytics-card"><strong>Rejected</strong><span>{analytics.rejectedRequests}</span></div>
-            <div className="analytics-card"><strong>Cancelled</strong><span>{analytics.cancelledRequests}</span></div>
+  const leaveColumns = [
+    {
+      header: 'Employee',
+      accessor: (row: LeaveRequest) => (
+        <div>
+          <div className="font-medium text-gray-900">
+            {row.employee?.user?.fullName || 'Employee'}
           </div>
-
-          <div className="analytics-table-wrap">
-            <table className="analytics-table">
-              <thead>
-                <tr>
-                  <th>Leave Type</th>
-                  <th>Allocated</th>
-                  <th>Used</th>
-                  <th>Remaining</th>
-                  <th>Utilization</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analytics.byLeaveType.map((item) => (
-                  <tr key={item.leaveType}>
-                    <td>{item.leaveType}</td>
-                    <td>{item.totalAllocatedDays}</td>
-                    <td>{item.usedDays}</td>
-                    <td>{item.remainingDays}</td>
-                    <td>{item.utilizationPercentage}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-sm text-gray-500">
+            {row.employee?.user?.email}
           </div>
         </div>
-      )}
+      ),
+    },
+    {
+      header: 'Leave Type',
+      accessor: (row: LeaveRequest) => row.leaveType,
+    },
+    {
+      header: 'Duration',
+      accessor: (row: LeaveRequest) => `${row.numberOfDays} days`,
+    },
+    {
+      header: 'Start Date',
+      accessor: (row: LeaveRequest) => new Date(row.startDate).toLocaleDateString(),
+    },
+    {
+      header: 'End Date',
+      accessor: (row: LeaveRequest) => new Date(row.endDate).toLocaleDateString(),
+    },
+    {
+      header: 'Status',
+      accessor: (row: LeaveRequest) => (
+        <Badge variant={getStatusBadgeVariant(row.status)}>
+          {normalizeStatus(row.status)}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Actions',
+      accessor: (row: LeaveRequest) => (
+        row.status === 'Pending' ? (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setSelectedLeave(row);
+              setAdminComments('');
+            }}
+          >
+            Review
+          </Button>
+        ) : null
+      ),
+    },
+  ];
 
-      <div className="filter-section">
-        <label>Filter by Status:</label>
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="All">All</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-        <button
-          type="button"
-          className="btn-export"
-          onClick={handleExportExcel}
-          disabled={exporting}
-        >
-          {exporting ? 'Exporting...' : 'Export Excel'}
-        </button>
-        <button
-          type="button"
-          className="btn-carry-forward"
-          onClick={handleCarryForward}
-          disabled={carryingForward}
-        >
-          {carryingForward ? 'Applying...' : 'Apply Carry-Forward'}
-        </button>
+  const analyticsTableColumns = [
+    { header: 'Leave Type', accessor: 'leaveType' as const },
+    { header: 'Allocated', accessor: 'totalAllocatedDays' as const },
+    { header: 'Used', accessor: 'usedDays' as const },
+    { header: 'Remaining', accessor: 'remainingDays' as const },
+    {
+      header: 'Utilization',
+      accessor: (row: any) => `${row.utilizationPercentage}%`,
+    },
+  ];
+
+  return (
+    <Layout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Leave Approvals</h1>
+            <p className="text-gray-600 mt-1">Review and manage employee leave requests</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="secondary"
+              icon={FiDownload}
+              onClick={handleExportExcel}
+              loading={exporting}
+            >
+              {exporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+            <Button
+              variant="outline"
+              icon={FiRefreshCw}
+              onClick={handleCarryForward}
+              loading={carryingForward}
+            >
+              {carryingForward ? 'Applying...' : 'Carry-Forward'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            {success}
+          </div>
+        )}
+
+        {/* Carry Forward Result */}
+        {carryForwardResult && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+            Policy applied for {carryForwardResult.fromYear} to {carryForwardResult.toYear} with max {carryForwardResult.maxCarryForwardDays} days.
+            Updated balances: {carryForwardResult.updatedBalances}
+          </div>
+        )}
+
+        {/* Analytics */}
+        {analytics && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <StatCard
+                title="Total Requests"
+                value={analytics.totalRequests}
+                icon={FiCalendar}
+                color="blue"
+              />
+              <StatCard
+                title="Pending"
+                value={analytics.pendingRequests}
+                icon={FiClock}
+                color="orange"
+              />
+              <StatCard
+                title="Approved"
+                value={analytics.approvedRequests}
+                icon={FiCheckCircle}
+                color="green"
+              />
+              <StatCard
+                title="Rejected"
+                value={analytics.rejectedRequests}
+                icon={FiXCircle}
+                color="red"
+              />
+              <StatCard
+                title="Cancelled"
+                value={analytics.cancelledRequests}
+                icon={FiXCircle}
+                color="purple"
+              />
+            </div>
+
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Leave Analytics by Type</h3>
+              <Table
+                data={analytics.byLeaveType}
+                columns={analyticsTableColumns}
+                keyExtractor={(row, index) => row.leaveType}
+                emptyMessage="No analytics data available"
+              />
+            </Card>
+          </>
+        )}
+
+        {/* Filter and Leave Requests */}
+        <Card>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Leave Requests</h2>
+            <div className="flex items-center space-x-2">
+              <FiFilter className="w-5 h-5 text-gray-400" />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="All">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+              <p className="text-gray-600 mt-4">Loading leave requests...</p>
+            </div>
+          ) : (
+            <Table
+              data={filteredLeaves}
+              columns={leaveColumns}
+              keyExtractor={(row) => row.id}
+              emptyMessage="No leave requests found"
+            />
+          )}
+        </Card>
       </div>
 
-      {carryForwardResult && (
-        <div className="carry-forward-result">
-          Policy applied for {carryForwardResult.fromYear} to {carryForwardResult.toYear} with max {carryForwardResult.maxCarryForwardDays} days.
-          Updated balances: {carryForwardResult.updatedBalances}
-        </div>
-      )}
-
-      {loading ? (
-        <p>Loading leave requests...</p>
-      ) : filteredLeaves.length === 0 ? (
-        <p>No leave requests found</p>
-      ) : (
-        <div className="approvals-grid">
-          {filteredLeaves.map((leave) => (
-            <div 
-              key={leave.id} 
-              className={`approval-card ${normalizeStatus(leave.status).toLowerCase()}`}
-            >
-              <div className="card-header">
-                <div>
-                  <h3>{leave.employee?.user?.fullName || 'Employee'}</h3>
-                  <p className="email">{leave.employee?.user?.email}</p>
-                </div>
-                <span 
-                  className="status-badge"
-                  style={{ backgroundColor: getStatusColor(normalizeStatus(leave.status)) }}
-                >
-                  {normalizeStatus(leave.status)}
-                </span>
-              </div>
-
-              <div className="card-details">
-                <p><strong>Leave Type:</strong> {leave.leaveType}</p>
-                <p><strong>Duration:</strong> {leave.numberOfDays} days</p>
-                <p><strong>Start Date:</strong> {new Date(leave.startDate).toLocaleDateString()}</p>
-                <p><strong>End Date:</strong> {new Date(leave.endDate).toLocaleDateString()}</p>
-                <p><strong>Reason:</strong> {leave.reason}</p>
-                {leave.adminComments && (
-                  <p><strong>Comments:</strong> {leave.adminComments}</p>
-                )}
-              </div>
-
-              {leave.status === 'Pending' && (
-                <button
-                  className="btn-action"
-                  onClick={() => {
-                    setSelectedLeave(leave);
-                    setAdminComments('');
-                  }}
-                >
-                  Review
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* Review Modal */}
       {selectedLeave && (
-        <div className="modal-overlay" onClick={() => setSelectedLeave(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Review Leave Request</h2>
-              <button 
-                className="close-btn"
-                onClick={() => setSelectedLeave(null)}
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedLeave(null)}
+          title="Review Leave Request"
+          size="lg"
+          footer={
+            <div className="flex justify-end space-x-3">
+              <Button variant="ghost" onClick={() => setSelectedLeave(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                icon={FiXCircle}
+                onClick={() => handleReject(selectedLeave.id)}
               >
-                ✕
-              </button>
+                Reject
+              </Button>
+              <Button
+                variant="success"
+                icon={FiCheckCircle}
+                onClick={() => handleApprove(selectedLeave.id)}
+              >
+                Approve
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Employee</label>
+                <p className="text-gray-900 font-medium">
+                  {selectedLeave.employee?.user?.fullName}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Email</label>
+                <p className="text-gray-900">{selectedLeave.employee?.user?.email}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Leave Type</label>
+                <p className="text-gray-900">{selectedLeave.leaveType}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Duration</label>
+                <p className="text-gray-900">{selectedLeave.numberOfDays} days</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Start Date</label>
+                <p className="text-gray-900">
+                  {new Date(selectedLeave.startDate).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">End Date</label>
+                <p className="text-gray-900">
+                  {new Date(selectedLeave.endDate).toLocaleDateString()}
+                </p>
+              </div>
             </div>
 
-            <div className="modal-body">
-              <p><strong>Employee:</strong> {selectedLeave.employee?.user?.fullName}</p>
-              <p><strong>Email:</strong> {selectedLeave.employee?.user?.email}</p>
-              <p><strong>Leave Type:</strong> {selectedLeave.leaveType}</p>
-              <p><strong>Duration:</strong> {selectedLeave.numberOfDays} days</p>
-              <p><strong>From:</strong> {new Date(selectedLeave.startDate).toLocaleDateString()}</p>
-              <p><strong>To:</strong> {new Date(selectedLeave.endDate).toLocaleDateString()}</p>
-              <p><strong>Reason:</strong> {selectedLeave.reason}</p>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Reason</label>
+              <p className="text-gray-900 mt-1">{selectedLeave.reason}</p>
+            </div>
 
-              <div className="form-group">
-                <label>Admin Comments:</label>
-                <textarea
-                  value={adminComments}
-                  onChange={(e) => setAdminComments(e.target.value)}
-                  placeholder="Enter your comments (optional)"
-                  rows={4}
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  className="btn-approve"
-                  onClick={() => handleApprove(selectedLeave.id)}
-                >
-                  Approve
-                </button>
-                <button
-                  className="btn-reject"
-                  onClick={() => handleReject(selectedLeave.id)}
-                >
-                  Reject
-                </button>
-                <button
-                  className="btn-cancel"
-                  onClick={() => setSelectedLeave(null)}
-                >
-                  Cancel
-                </button>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Admin Comments (Optional)
+              </label>
+              <textarea
+                value={adminComments}
+                onChange={(e) => setAdminComments(e.target.value)}
+                placeholder="Enter your comments"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
             </div>
           </div>
-        </div>
+        </Modal>
       )}
-    </div>
+    </Layout>
   );
 }
