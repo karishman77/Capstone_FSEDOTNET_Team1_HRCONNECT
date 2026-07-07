@@ -76,9 +76,32 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
-        builder.AllowAnyOrigin()
+        builder.WithOrigins(
+                "http://localhost:5173", // Vite dev server
+                "http://localhost:3000", // Alternative local port
+                "https://localhost:5173"
+            )
+            .SetIsOriginAllowedToAllowWildcardSubdomains()
             .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowCredentials());
+
+    // Allow all Vercel deployments
+    options.AddPolicy("AllowVercel", builder =>
+        builder.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                    return false;
+
+                var uri = new Uri(origin);
+                // Allow Vercel deployments and localhost
+                return uri.Host.EndsWith(".vercel.app") ||
+                       uri.Host == "localhost" ||
+                       uri.Host == "127.0.0.1";
+            })
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
 });
 
 // Rate limiting
@@ -122,7 +145,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowAll");
+app.UseCors("AllowVercel");
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
