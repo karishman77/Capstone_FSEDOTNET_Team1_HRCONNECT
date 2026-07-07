@@ -10,7 +10,6 @@ import Input from '../components/Input';
 import Modal from '../components/Modal';
 import Table from '../components/Table';
 import StatCard from '../components/StatCard';
-import Badge from '../components/Badge';
 import {
   FiUsers,
   FiUserPlus,
@@ -311,7 +310,7 @@ export const Dashboard: React.FC = () => {
                         fill="#8884d8"
                         dataKey="count"
                       >
-                        {departmentChartData.map((entry, index) => (
+                        {departmentChartData.map((_entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

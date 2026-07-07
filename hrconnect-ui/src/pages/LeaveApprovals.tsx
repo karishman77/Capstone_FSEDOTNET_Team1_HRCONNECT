@@ -15,8 +15,7 @@ import {
   FiDownload,
   FiRefreshCw,
   FiFilter,
-  FiCalendar,
-  FiUser
+  FiCalendar
 } from 'react-icons/fi';
 
 export default function LeaveApprovals() {
@@ -306,7 +305,7 @@ export default function LeaveApprovals() {
               <Table
                 data={analytics.byLeaveType}
                 columns={analyticsTableColumns}
-                keyExtractor={(row, index) => row.leaveType}
+                keyExtractor={(row) => row.leaveType}
                 emptyMessage="No analytics data available"
               />
             </Card>

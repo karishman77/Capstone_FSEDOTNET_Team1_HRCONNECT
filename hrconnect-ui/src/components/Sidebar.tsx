@@ -2,12 +2,10 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   FiHome,
-  FiUsers,
   FiCalendar,
   FiCheckSquare,
   FiUser,
   FiLogOut,
-  FiMenu,
   FiX
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
