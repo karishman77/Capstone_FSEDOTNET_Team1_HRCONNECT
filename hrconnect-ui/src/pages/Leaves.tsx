@@ -17,6 +17,7 @@ export default function Leaves() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [modalError, setModalError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({
     leaveType: 'Casual',
@@ -58,16 +59,15 @@ export default function Leaves() {
 
   const handleCreateLeave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setModalError('');
 
     if (!formData.startDate || !formData.endDate) {
-      setError('Please select both start and end dates');
+      setModalError('Please select both start and end dates');
       return;
     }
 
     if (new Date(formData.endDate) < new Date(formData.startDate)) {
-      setError('End date cannot be earlier than start date');
+      setModalError('End date cannot be earlier than start date');
       return;
     }
 
@@ -77,7 +77,7 @@ export default function Leaves() {
     if (!user?.isAdmin) {
       const selectedBalance = balances.find((b) => b.leaveType === formData.leaveType);
       if (selectedBalance && requestedDays > selectedBalance.remainingDays) {
-        setError(`Insufficient ${formData.leaveType} leave balance. Remaining: ${selectedBalance.remainingDays} day(s), requested: ${requestedDays} day(s)`);
+        setModalError(`Insufficient ${formData.leaveType} leave balance. Remaining: ${selectedBalance.remainingDays} day(s), requested: ${requestedDays} day(s)`);
         return;
       }
     }
@@ -91,10 +91,11 @@ export default function Leaves() {
       });
       setSuccess('Leave request created successfully');
       setFormData({ leaveType: 'Casual', startDate: '', endDate: '', reason: '' });
+      setModalError('');
       setShowCreateModal(false);
       fetchData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create leave request');
+      setModalError(err.response?.data?.message || 'Failed to create leave request');
     }
   };
 
@@ -138,7 +139,10 @@ export default function Leaves() {
             <Button
               variant="primary"
               icon={FiPlusCircle}
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                setShowCreateModal(true);
+                setModalError('');
+              }}
             >
               Request Leave
             </Button>
@@ -298,11 +302,17 @@ export default function Leaves() {
       {/* Create Leave Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setModalError('');
+        }}
         title="Request Leave"
         footer={
           <div className="flex justify-end space-x-3">
-            <Button variant="ghost" onClick={() => setShowCreateModal(false)}>
+            <Button variant="ghost" onClick={() => {
+              setShowCreateModal(false);
+              setModalError('');
+            }}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleCreateLeave}>
@@ -311,6 +321,11 @@ export default function Leaves() {
           </div>
         }
       >
+        {modalError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {modalError}
+          </div>
+        )}
         <form onSubmit={handleCreateLeave} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
