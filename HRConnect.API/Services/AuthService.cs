@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HRConnect.API.Services;
 
@@ -28,6 +29,35 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        // Validate email
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return new AuthResponse { Success = false, Message = "Email is required" };
+        }
+
+        var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase);
+        if (!emailRegex.IsMatch(request.Email))
+        {
+            return new AuthResponse { Success = false, Message = "Please enter a valid email address" };
+        }
+
+        // Validate full name
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            return new AuthResponse { Success = false, Message = "Full name is required" };
+        }
+
+        // Validate password
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            return new AuthResponse { Success = false, Message = "Password is required" };
+        }
+
+        if (request.Password.Length < 8)
+        {
+            return new AuthResponse { Success = false, Message = "Password must be at least 8 characters long" };
+        }
+
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
         {
             return new AuthResponse { Success = false, Message = "Email already exists" };
@@ -89,6 +119,29 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
+        // Validate email
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return new AuthResponse { Success = false, Message = "Email is required" };
+        }
+
+        var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase);
+        if (!emailRegex.IsMatch(request.Email))
+        {
+            return new AuthResponse { Success = false, Message = "Please enter a valid email address" };
+        }
+
+        // Validate password
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            return new AuthResponse { Success = false, Message = "Password is required" };
+        }
+
+        if (request.Password.Length < 8)
+        {
+            return new AuthResponse { Success = false, Message = "Invalid email or password" };
+        }
+
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {

@@ -31,6 +31,8 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [editModalError, setEditModalError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -74,12 +76,19 @@ export const Dashboard: React.FC = () => {
 
   const handleCreateEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setModalError('');
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(createForm.email)) {
+      setModalError('Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
 
     try {
       await employeeService.create(createForm);
       setSuccess('Employee created successfully');
+      setModalError('');
       setShowCreateModal(false);
       setCreateForm({
         fullName: '',
@@ -91,7 +100,7 @@ export const Dashboard: React.FC = () => {
       });
       await loadEmployees();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create employee');
+      setModalError(err.response?.data?.message || 'Failed to create employee');
     }
   };
 
@@ -99,17 +108,17 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!selectedEmployee) return;
 
-    setError('');
-    setSuccess('');
+    setEditModalError('');
 
     try {
       await employeeService.update(selectedEmployee.id, editForm);
       setSuccess('Employee updated successfully');
+      setEditModalError('');
       setShowEditModal(false);
       setSelectedEmployee(null);
       await loadEmployees();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update employee');
+      setEditModalError(err.response?.data?.message || 'Failed to update employee');
     }
   };
 
@@ -137,6 +146,7 @@ export const Dashboard: React.FC = () => {
       designation: employee.designation,
       joiningDate: employee.joiningDate.split('T')[0],
     });
+    setEditModalError('');
     setShowEditModal(true);
   };
 
@@ -330,7 +340,10 @@ export const Dashboard: React.FC = () => {
                 <Button
                   variant="primary"
                   icon={FiUserPlus}
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => {
+                    setShowCreateModal(true);
+                    setModalError('');
+                  }}
                 >
                   Add Employee
                 </Button>
@@ -401,11 +414,17 @@ export const Dashboard: React.FC = () => {
       {/* Create Employee Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setModalError('');
+        }}
         title="Add New Employee"
         footer={
           <div className="flex justify-end space-x-3">
-            <Button variant="ghost" onClick={() => setShowCreateModal(false)}>
+            <Button variant="ghost" onClick={() => {
+              setShowCreateModal(false);
+              setModalError('');
+            }}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleCreateEmployee}>
@@ -414,6 +433,11 @@ export const Dashboard: React.FC = () => {
           </div>
         }
       >
+        {modalError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {modalError}
+          </div>
+        )}
         <form onSubmit={handleCreateEmployee} className="space-y-4">
           <Input
             label="Full Name"
@@ -466,11 +490,17 @@ export const Dashboard: React.FC = () => {
       {/* Edit Employee Modal */}
       <Modal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditModalError('');
+        }}
         title="Edit Employee"
         footer={
           <div className="flex justify-end space-x-3">
-            <Button variant="ghost" onClick={() => setShowEditModal(false)}>
+            <Button variant="ghost" onClick={() => {
+              setShowEditModal(false);
+              setEditModalError('');
+            }}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleUpdateEmployee}>
@@ -479,6 +509,11 @@ export const Dashboard: React.FC = () => {
           </div>
         }
       >
+        {editModalError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {editModalError}
+          </div>
+        )}
         <form onSubmit={handleUpdateEmployee} className="space-y-4">
           <Input
             label="Department"

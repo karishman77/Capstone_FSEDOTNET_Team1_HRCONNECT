@@ -3,6 +3,7 @@ using HRConnect.API.Data;
 using HRConnect.API.DTOs;
 using HRConnect.API.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace HRConnect.API.Services;
 
@@ -69,6 +70,13 @@ public class EmployeeService : IEmployeeService
         if (string.IsNullOrWhiteSpace(request.Email))
         {
             throw new ArgumentException("Email is required.");
+        }
+
+        // Validate email format
+        var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase);
+        if (!emailRegex.IsMatch(request.Email))
+        {
+            throw new ArgumentException("Please enter a valid email address (e.g., user@example.com)");
         }
 
         if (string.IsNullOrWhiteSpace(request.FullName))
