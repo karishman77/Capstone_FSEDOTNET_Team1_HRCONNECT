@@ -78,10 +78,49 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     setModalError('');
 
+    // Full name validation
+    if (!createForm.fullName || createForm.fullName.trim().length === 0) {
+      setModalError('Full name is required');
+      return;
+    }
+
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(createForm.fullName)) {
+      setModalError('Full name can only contain letters and spaces');
+      return;
+    }
+
+    if (createForm.fullName.trim().length < 2) {
+      setModalError('Full name must be at least 2 characters long');
+      return;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(createForm.email)) {
       setModalError('Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+
+    // Password validation
+    if (!createForm.password || createForm.password.trim().length === 0) {
+      setModalError('Password is required');
+      return;
+    }
+
+    if (createForm.password.length < 8) {
+      setModalError('Password must be at least 8 characters long');
+      return;
+    }
+
+    // Strong password validation
+    const hasUpperCase = /[A-Z]/.test(createForm.password);
+    const hasLowerCase = /[a-z]/.test(createForm.password);
+    const hasNumber = /[0-9]/.test(createForm.password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(createForm.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+      setModalError('Password must contain uppercase, lowercase, number, and special character (!@#$%^&* etc.)');
       return;
     }
 
@@ -459,7 +498,7 @@ export const Dashboard: React.FC = () => {
             type="password"
             value={createForm.password}
             onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-            helperText="Minimum 8 characters"
+            helperText="Min 8 characters with uppercase, lowercase, number, and special character"
             required
           />
           <Input

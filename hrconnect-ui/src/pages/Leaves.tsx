@@ -66,7 +66,23 @@ export default function Leaves() {
       return;
     }
 
-    if (new Date(formData.endDate) < new Date(formData.startDate)) {
+    // Check if start date is a weekend
+    const startDate = new Date(formData.startDate);
+    const startDay = startDate.getDay();
+    if (startDay === 0 || startDay === 6) {
+      setModalError('Start date cannot be on a weekend (Saturday or Sunday)');
+      return;
+    }
+
+    // Check if end date is a weekend
+    const endDate = new Date(formData.endDate);
+    const endDay = endDate.getDay();
+    if (endDay === 0 || endDay === 6) {
+      setModalError('End date cannot be on a weekend (Saturday or Sunday)');
+      return;
+    }
+
+    if (endDate < startDate) {
       setModalError('End date cannot be earlier than start date');
       return;
     }
@@ -122,6 +138,11 @@ export default function Leaves() {
   const calculateDays = () => {
     if (!formData.startDate || !formData.endDate) return 0;
     return Math.floor((new Date(formData.endDate).getTime() - new Date(formData.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   };
 
   return (
@@ -347,7 +368,9 @@ export default function Leaves() {
             type="date"
             value={formData.startDate}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+            min={getTodayDate()}
             icon={FiCalendar}
+            helperText="Weekends (Sat/Sun) are not allowed"
             required
           />
 
@@ -356,7 +379,9 @@ export default function Leaves() {
             type="date"
             value={formData.endDate}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+            min={formData.startDate || getTodayDate()}
             icon={FiCalendar}
+            helperText="Weekends (Sat/Sun) are not allowed"
             required
           />
 

@@ -84,6 +84,18 @@ public class EmployeeService : IEmployeeService
             throw new ArgumentException("Full name is required.");
         }
 
+        // Only allow alphabetic characters and spaces
+        var nameRegex = new Regex(@"^[a-zA-Z\s]+$", RegexOptions.IgnoreCase);
+        if (!nameRegex.IsMatch(request.FullName))
+        {
+            throw new ArgumentException("Full name can only contain letters and spaces");
+        }
+
+        if (request.FullName.Trim().Length < 2)
+        {
+            throw new ArgumentException("Full name must be at least 2 characters long");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Department))
         {
             throw new ArgumentException("Department is required.");
@@ -112,6 +124,17 @@ public class EmployeeService : IEmployeeService
         if (normalizedPassword.Length < 8)
         {
             throw new ArgumentException("Password must be at least 8 characters long.");
+        }
+
+        // Strong password validation
+        var hasUpperCase = normalizedPassword.Any(char.IsUpper);
+        var hasLowerCase = normalizedPassword.Any(char.IsLower);
+        var hasNumber = normalizedPassword.Any(char.IsDigit);
+        var hasSpecialChar = new Regex(@"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]").IsMatch(normalizedPassword);
+
+        if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar)
+        {
+            throw new ArgumentException("Password must contain uppercase, lowercase, number, and special character");
         }
 
         var emailExists = await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail);

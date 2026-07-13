@@ -84,16 +84,26 @@ export const Login: React.FC = () => {
               required
             />
 
-            <Input
-              label="Password"
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              icon={FiLock}
-              required
-            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                icon={FiLock}
+                required
+              />
+              <div className="text-right mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
 
             <Button
               type="submit"

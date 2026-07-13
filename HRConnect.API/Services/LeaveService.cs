@@ -91,6 +91,18 @@ public class LeaveService : ILeaveService
             throw new ArgumentException("End date cannot be earlier than start date.");
         }
 
+        // Check if start date is a weekend
+        if (startDate.DayOfWeek == DayOfWeek.Saturday || startDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new ArgumentException("Start date cannot be on a weekend (Saturday or Sunday)");
+        }
+
+        // Check if end date is a weekend
+        if (endDate.DayOfWeek == DayOfWeek.Saturday || endDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            throw new ArgumentException("End date cannot be on a weekend (Saturday or Sunday)");
+        }
+
         // Check for overlapping pending leaves
         var pendingOverlap = await _context.LeaveRequests.AnyAsync(l =>
             l.EmployeeId == employeeId &&
