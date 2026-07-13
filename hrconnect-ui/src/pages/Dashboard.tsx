@@ -162,7 +162,17 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleDeleteEmployee = async (employeeId: string) => {
-    if (!window.confirm('Are you sure you want to delete this employee?')) {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this employee?\n\n' +
+      'This will permanently delete:\n' +
+      '• Employee record\n' +
+      '• User account (they cannot login anymore)\n' +
+      '• All leave requests\n' +
+      '• All leave balances\n\n' +
+      'This action cannot be undone!'
+    );
+
+    if (!confirmed) {
       return;
     }
 
@@ -171,7 +181,7 @@ export const Dashboard: React.FC = () => {
 
     try {
       await employeeService.delete(employeeId);
-      setSuccess('Employee deleted successfully');
+      setSuccess('Employee and associated user account deleted successfully');
       await loadEmployees();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete employee');

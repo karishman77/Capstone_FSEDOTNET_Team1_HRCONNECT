@@ -211,10 +211,34 @@ public class EmployeeService : IEmployeeService
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Id == id);
+        var employee = await _context.Employees
+            .Include(e => e.User)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
         if (employee == null) return false;
 
+        // Prevent deleting admin user
+        if (employee.User != null && employee.User.IsAdmin)
+        {
+            throw new InvalidOperationException("Cannot delete admin user");
+        }
+
+        // Delete User account first (this will cascade to Employee, LeaveRequests, LeaveBalances)
+        // But Employee has FK to User, so we need to delete Employee first to avoid FK constraint
+
+        // Store userId for deletion
+        var userId = employee.UserId;
+
+        // Delete employee record (this cascades to LeaveRequests and LeaveBalances)
         _context.Employees.Remove(employee);
+
+        // Find and delete the user account (prevent login after deletion)
+        var user = await _context.Users.FindAsync(userId);
+        if (user != null)
+        {
+            _context.Users.Remove(user);
+        }
+
         await _context.SaveChangesAsync();
         return true;
     }
